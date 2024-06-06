@@ -1,0 +1,65 @@
+<mvc:View
+    controllerName="zcapmedia.controller.MediaView"
+    xmlns:mvc="sap.ui.core.mvc"
+    displayBlock="true"
+    xmlns="sap.m"
+    xmlns:upload="sap.m.upload"
+>
+    <Page title="{i18n>title}">
+        <content>
+            <upload:UploadSet
+                id="uploadSet"
+                instantUpload="false"
+                uploadEnabled="true"
+                showIcons="true"
+                afterItemAdded="onAfterItemAdded"
+                uploadCompleted="onUploadCompleted"
+                items="{
+								path: '/Attachments',
+								parameters: {
+									$orderby: 'createdAt desc'
+								},
+								templateShareable: false}"
+            >
+                <upload:toolbar />
+                <upload:items>
+                    <upload:UploadSetItem
+                        fileName="{fileName}"
+                        mediaType="{mediaType}"
+                        url="{url}"
+                        thumbnailUrl="{
+								path: 'mediaType',
+								formatter: '.formatThumbnailUrl'
+							}"
+                        enabledEdit="false"
+                        openPressed="onOpenPressed"
+                        removePressed="onRemovePressed"
+                    >
+                        <upload:attributes>
+                            <ObjectAttribute
+                                title="Uploaded By"
+                                text="{createdBy}"
+                                active="false"
+                            />
+                            <ObjectAttribute
+                                title="Uploaded on"
+                                text="{createdAt}"
+                                active="false"
+                            />
+                            <ObjectAttribute
+                                title="File Type"
+                                text="{mediaType}"
+                                active="false"
+                            />
+                            <ObjectAttribute
+                                title="File Size"
+                                text="{size}"
+                                active="false"
+                            />
+                        </upload:attributes>
+                    </upload:UploadSetItem>
+                </upload:items>
+            </upload:UploadSet>
+        </content>
+    </Page>
+</mvc:View>
