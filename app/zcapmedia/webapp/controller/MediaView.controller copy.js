@@ -1,17 +1,17 @@
 sap.ui.define([
-    "sap/ui/core/mvc/Controller",
+    "./BaseController",
     "sap/ui/model/json/JSONModel",
-    "sap/ui/core/Item",
-    "sap/m/MessageToast"
+    "sap/m/MessageToast",
+    "sap/base/Log"
 ],
-    function (Controller, JSONModel,
-        Item,
-        MessageToast) {
+    function (BaseController, JSONModel, MessageToast,Log) {
         "use strict";
 
-        return Controller.extend("zcapmedia.controller.MediaView", {
-            onInit: function () {
-
+        return BaseController.extend("zcapmedia.controller.MediaView", {
+            onAfterRendering: function () {
+                var appId = this.getOwnerComponent().getManifestEntry("/sap.app/id");
+                var appPath = appId.replaceAll(".", "/");
+                this.appModulePath = sap.ui.require.toUrl(appPath);
             },
             onAfterItemAdded: function (oEvent) {
                 var item = oEvent.getParameter("item")
@@ -22,6 +22,58 @@ sap.ui.define([
                     .catch((err) => {
                         console.log(err);
                     })
+            },
+            _createEntity: async function (item) {
+                var oPayload = {
+                    mediaType: item.getMediaType(),
+                    fileName: item.getFileName(),
+                    size: item.getFileObject().size
+                };
+
+                
+                let that = this;
+                try {
+                    const response = await fetch(that.appModulePath + "/mediapath/Attachments", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body : JSON.stringify(oPayload)
+                    });
+                    
+                    if (!response.ok) {
+                        const errorBody = await response.json().catch(() => ({}));
+                        let erObj = {
+                            "resStatus" : response.status,
+                            "resMsg" : errorBody.error.message,
+                            "details" : errorBody?.error?.details,
+                            "target" : errorBody?.error?.target
+                        }
+                        throw erObj;
+                    }else{
+                        that._setAppBusy(false);
+                        const succBody = await response.json().catch(() => ({}));
+                        Log.info("Success:", succBody);
+                        that._uploadContent();
+                        
+                    }
+                }
+                catch (error) {
+                    that._setAppBusy(false);
+                    
+                    that._displayErrorMsgDialog(error.resMsg)
+                    
+                    Log.error("Error while getCustomerAccountById:", JSON.stringify(error));
+                }
+            },
+
+             _uploadContent: function (item, id) {
+                var url = that.appModulePath + `/mediapath/Attachments(${id})/content`
+                item.setUploadUrl(url);
+                var oUploadSet = this.byId("uploadSet");
+                oUploadSet.setHttpRequestMethod("PUT")
+                oUploadSet.uploadItem(item);
             },
 
             onUploadCompleted: function (oEvent) {
@@ -80,7 +132,9 @@ sap.ui.define([
                 });
             },
 
-            _createEntity: function (item) {
+            
+
+            /* _createEntity: function (item) {
                 var data = {
                     mediaType: item.getMediaType(),
                     fileName: item.getFileName(),
@@ -88,7 +142,7 @@ sap.ui.define([
                 };
 
                 var settings = {
-                    url: "/odata/v4/mediapath/Attachments",
+                    url: "/mediapath/Attachments",
                     method: "POST",
                     headers: {
                         "Content-type": "application/json"
@@ -105,15 +159,9 @@ sap.ui.define([
                             reject(err);
                         })
                 })
-            },
+            }, */
 
-            _uploadContent: function (item, id) {
-                var url = `/odata/v4/mediapath/Attachments(${id})/content`
-                item.setUploadUrl(url);
-                var oUploadSet = this.byId("uploadSet");
-                oUploadSet.setHttpRequestMethod("PUT")
-                oUploadSet.uploadItem(item);
-            },
+           
 
             //formatters
             formatThumbnailUrl: function (mediaType) {

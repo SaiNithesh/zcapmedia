@@ -3,63 +3,50 @@
     xmlns:mvc="sap.ui.core.mvc"
     displayBlock="true"
     xmlns="sap.m"
-    xmlns:upload="sap.m.upload"
+    xmlns:unified="sap.ui.unified"
 >
     <Page title="{i18n>title}">
         <content>
-            <upload:UploadSet
-                id="uploadSet"
-                instantUpload="false"
-                uploadEnabled="true"
-                showIcons="true"
-                afterItemAdded="onAfterItemAdded"
-                uploadCompleted="onUploadCompleted"
-                items="{
-								path: '/Attachments',
-								parameters: {
-									$orderby: 'createdAt desc'
-								},
-								templateShareable: false}"
-            >
-                <upload:toolbar />
-                <upload:items>
-                    <upload:UploadSetItem
-                        fileName="{fileName}"
-                        mediaType="{mediaType}"
-                        url="{url}"
-                        thumbnailUrl="{
-								path: 'mediaType',
-								formatter: '.formatThumbnailUrl'
-							}"
-                        enabledEdit="false"
-                        openPressed="onOpenPressed"
-                        removePressed="onRemovePressed"
-                    >
-                        <upload:attributes>
-                            <ObjectAttribute
-                                title="Uploaded By"
-                                text="{createdBy}"
-                                active="false"
-                            />
-                            <ObjectAttribute
-                                title="Uploaded on"
-                                text="{createdAt}"
-                                active="false"
-                            />
-                            <ObjectAttribute
-                                title="File Type"
-                                text="{mediaType}"
-                                active="false"
-                            />
-                            <ObjectAttribute
-                                title="File Size"
-                                text="{size}"
-                                active="false"
-                            />
-                        </upload:attributes>
-                    </upload:UploadSetItem>
-                </upload:items>
-            </upload:UploadSet>
+             <VBox class="sapUiSmallMargin">
+                <unified:FileUploader
+                    id="fileUploader"
+                    name="upload"
+                    mimeType="application/pdf"
+                    fileType="pdf"
+                    maximumFileSize="10000000"
+                    useMultipart="false"
+                    sendXHR="true"
+                    change="onFileSelected"
+                    width="100%"/>
+
+                <Button text="Upload to CAP" press="onUploadToCAP" class="sapUiSmallMarginTop"/>
+                <Button text="View PDF" press="onViewPDF" class="sapUiSmallMarginTop"/>
+            </VBox>
+
+             <!-- Attachments Table -->
+            <Table 
+                items="{/Attachments}"
+                inset="false"
+                class="sapUiSmallMarginTop"
+                growing="true"
+                growingThreshold="10">
+            <columns>
+                <Column><Text text="File Name"/></Column>
+                <Column><Text text="Media Type"/></Column>
+                <Column><Text text="Size (bytes)"/></Column>
+                <Column><Text text="URL"/></Column>
+            </columns>
+            <items>
+                <ColumnListItem>
+                <cells>
+                    <Text text="{fileName}"/>
+                    <Text text="{mediaType}"/>
+                    <Text text="{size}"/>
+                    <Link text="{url}" href="{url}" target="_blank"/>
+                </cells>
+                </ColumnListItem>
+            </items>
+            </Table>
         </content>
     </Page>
 </mvc:View>

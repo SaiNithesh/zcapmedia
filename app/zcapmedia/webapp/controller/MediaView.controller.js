@@ -1,143 +1,112 @@
 sap.ui.define([
-    "sap/ui/core/mvc/Controller",
-    "sap/ui/model/json/JSONModel",
-    "sap/ui/core/Item",
-    "sap/m/MessageToast"
-],
-    function (Controller, JSONModel,
-        Item,
-        MessageToast) {
-        "use strict";
+   "./BaseController",
+  "sap/m/MessageToast",
+  "sap/m/PDFViewer",
+  "sap/ui/model/json/JSONModel",
+      "sap/base/Log"
+], function (BaseController, MessageToast, PDFViewer, JSONModel, Log) {
+  "use strict";
 
-        return Controller.extend("zcapmedia.controller.MediaView", {
-            onInit: function () {
+  return BaseController.extend("zcapmedia.controller.MediaView", {
+    onInit: function () {
+      this._selectedFile = null;
+    },
+    onAfterRendering: function () {
+        this._loadAttachments();
+    },
 
-            },
-            onAfterItemAdded: function (oEvent) {
-                var item = oEvent.getParameter("item")
-                this._createEntity(item)
-                    .then((id) => {
-                        this._uploadContent(item, id);
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                    })
-            },
-
-            onUploadCompleted: function (oEvent) {
-                var oUploadSet = this.byId("uploadSet");
-                oUploadSet.removeAllIncompleteItems();
-                oUploadSet.getBinding("items").refresh();
-            },
-
-            onRemovePressed: function (oEvent) {
-                oEvent.preventDefault();
-                oEvent.getParameter("item").getBindingContext().delete();
-                MessageToast.show("Selected file has been deleted");
-            },
-
-            onOpenPressed: function (oEvent) {
-                oEvent.preventDefault();
-                var item = oEvent.getSource();
-                this._fileName = item.getFileName();
-                var that = this;
-                this._download(item)
-                    .then((blob) => {
-                        var url = window.URL.createObjectURL(blob);
-                        //						window.open(url);	
-                        var link = document.createElement('a');
-                        link.href = url;
-                        link.setAttribute('download', that._fileName);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    })
-                    .catch((err) => {
-                        console.log(err);
-                    });
-            },
-
-            _download: function (item) {
-                var settings = {
-                    url: item.getUrl(),
-                    method: "GET",
-                    headers: {
-                        "Content-type": "application/octet-stream"
-                    },
-                    xhrFields: {
-                        responseType: 'blob'
-                    }
+    onFileSelected: function (oEvent) {
+      const oFileUploader = oEvent.getSource();
+      const aFiles = oEvent.getParameter("files");
+      if (aFiles && aFiles.length > 0) {
+        this._selectedFile = aFiles[0];
+        MessageToast.show("File selected: " + this._selectedFile.name);
+      }
+    },
+    _loadAttachments: async function () {
+        let that = this;
+        try {
+            const response = await fetch("/mediapath/Attachments", {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
                 }
+            });
 
-                return new Promise((resolve, reject) => {
-                    $.ajax(settings)
-                        .done((result) => {
-                            resolve(result)
-                        })
-                        .fail((err) => {
-                            reject(err)
-                        })
-                });
-            },
-
-            _createEntity: function (item) {
-                var data = {
-                    mediaType: item.getMediaType(),
-                    fileName: item.getFileName(),
-                    size: item.getFileObject().size
-                };
-
-                var settings = {
-                    url: "/odata/v4/mediapath/Attachments",
-                    method: "POST",
-                    headers: {
-                        "Content-type": "application/json"
-                    },
-                    data: JSON.stringify(data)
+            if (!response.ok) {
+                const errorBody = await response.json().catch(() => ({}));
+                let erObj = {
+                    "resStatus": response.status,
+                    "resMsg": errorBody.error.message,
+                    "details": errorBody?.error?.details,
+                    "target": errorBody?.error?.target
                 }
-
-                return new Promise((resolve, reject) => {
-                    $.ajax(settings)
-                        .done((results, textStatus, request) => {
-                            resolve(results.ID);
-                        })
-                        .fail((err) => {
-                            reject(err);
-                        })
-                })
-            },
-
-            _uploadContent: function (item, id) {
-                var url = `/odata/v4/mediapath/Attachments(${id})/content`
-                item.setUploadUrl(url);
-                var oUploadSet = this.byId("uploadSet");
-                oUploadSet.setHttpRequestMethod("PUT")
-                oUploadSet.uploadItem(item);
-            },
-
-            //formatters
-            formatThumbnailUrl: function (mediaType) {
-                var iconUrl;
-                switch (mediaType) {
-                    case "image/png":
-                        iconUrl = "sap-icon://card";
-                        break;
-                    case "text/plain":
-                        iconUrl = "sap-icon://document-text";
-                        break;
-                    case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":
-                        iconUrl = "sap-icon://excel-attachment";
-                        break;
-                    case "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-                        iconUrl = "sap-icon://doc-attachment";
-                        break;
-                    case "application/pdf":
-                        iconUrl = "sap-icon://pdf-attachment";
-                        break;
-                    default:
-                        iconUrl = "sap-icon://attachment";
-                }
-                return iconUrl;
+                throw erObj;
+            } else {
+                that._setAppBusy(false);
+                const succBody = await response.json().catch(() => ({}));
+                Log.info("Success: ", succBody);
             }
+        }
+        catch (error) {
+            that._setAppBusy(false);
+            Log.error("Error while : ", JSON.stringify(error));
+            that._displayErrorMsgDialog(error.resMsg)
+        }
+    },
+    onUploadToCAP: function () {if (!this._selectedFile) {
+        MessageToast.show("Please select a file first.");
+        return;
+      }
+
+      const oFile = this._selectedFile;
+      const reader = new FileReader();
+
+      reader.onload = (e) => {
+        const arrayBuffer = e.target.result;
+        const blob = new Blob([arrayBuffer], { type: "application/pdf" });
+
+        fetch("/mediapath/Attachments", {
+          method: "POST",
+          body: JSON.stringify({
+            mediaType: "application/pdf",
+            fileName: oFile.name,
+            size: oFile.size
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          const id = data.ID;
+          return fetch(`/mediapath/Attachments(${id})/content`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/pdf" },
+            body: blob
+          });
+        })
+        .then(() => {
+          MessageToast.show("Upload successful!");
+          this._loadAttachments();
+        })
+        .catch(err => {
+          console.error(err);
+          MessageToast.show("Upload failed.");
         });
-    });
+      };
+
+      reader.readAsArrayBuffer(oFile);
+    },
+
+    onViewPDF: function () {
+      const attachmentId = "beed28f9-dac9-421e-8af0-35bcf210a04d"; // Replace with actual ID
+      const pdfUrl = `/mediapath/Attachments(${attachmentId})/content`;
+
+      const oViewer = new PDFViewer({
+        source: pdfUrl,
+        title: "PDF Preview"
+      });
+
+      oViewer.open();
+    }
+  });
+});

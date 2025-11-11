@@ -1,0 +1,55 @@
+### Attachments
+GET http://localhost:4004/mediapath/Attachments
+Content-Type: application/json
+Accept: application/json
+
+
+### Create metadata for attachment
+POST http://localhost:4004/mediapath/Attachments
+Content-Type: application/json
+
+{
+  "mediaType": "application/pdf",
+  "fileName": "test.pdf"
+}
+
+
+### Upload a document
+PUT http://localhost:4004/mediapath/Attachments(09d8df37-2e07-4a45-86df-62660f985436)/content
+Content-Type: application/pdf
+
+< ./sample.pdf
+
+
+### Download the PDF
+GET http://localhost:4004/mediapath/Attachments(09d8df37-2e07-4a45-86df-62660f985436)/content
+Accept: application/pdf
+
+
+### Upload PDF to CAP
+POST http://localhost:4004/mediapath/Attachments
+Content-Type: multipart/form-data
+
+fileName: test_sample.pdf
+mediaType: application/pdf
+file: < ./test_sample.pdf
+
+
+### Upload a PDF to CAP in one step
+POST http://localhost:4004/mediapath/Attachments
+Content-Type: multipart/form-data; boundary=boundary123
+
+--boundary123
+Content-Disposition: form-data; name="test_sample"; filename="test_sample.pdf"
+Content-Type: application/pdf
+
+< ./test_sample.pdf
+--boundary123
+Content-Disposition: form-data; name="fileName"
+
+test_sample.pdf
+--boundary123
+Content-Disposition: form-data; name="mediaType"
+
+application/pdf
+--boundary123--

@@ -1,6 +1,6 @@
-using { nithesh.capmedia as md } from '../db/data-model';
+using { nithesh.capmedia as md } from '../db/schema';
 
-@path: '/odata/v4/mediapath'
+@path: '/mediapath'
 service MediaService {
-    entity Attachments as projection on md.Attachments
+    entity Attachments as projection on md.Attachments;
 }

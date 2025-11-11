@@ -17,7 +17,7 @@
     },
     "dataSources": {
       "mainService": {
-        "uri": "/odata/v4/mediapath/",
+        "uri": "/mediapath/",
         "type": "OData",
         "settings": {
           "annotations": [],
@@ -58,7 +58,7 @@
   "sap.ui5": {
     "flexEnabled": true,
     "dependencies": {
-      "minUI5Version": "1.124.0",
+      "minUI5Version": "1.136.0",
       "libs": {
         "sap.m": {},
         "sap.ui.core": {},
@@ -103,7 +103,7 @@
         "routerClass": "sap.m.routing.Router",
         "viewType": "XML",
         "async": true,
-        "viewPath": "zcapmedia.view",
+        "path": "zcapmedia.view",
         "controlAggregation": "pages",
         "controlId": "app",
         "clearControlAggregation": false

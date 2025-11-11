@@ -3,8 +3,8 @@
   "authenticationMethod": "route",
   "routes": [
     {
-      "source": "^/odata/(.*)$",
-      "target": "/odata/$1",
+      "source": "^/mediapath/(.*)$",
+      "target": "/mediapath/$1",
       "destination": "None",
       "authenticationType": "xsuaa",
       "csrfProtection": false
